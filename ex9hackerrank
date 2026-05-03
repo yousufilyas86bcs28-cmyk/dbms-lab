@@ -1,0 +1,299 @@
+
+HACKERRANK______
+A)Write a PL/SQL procedure to display the student IDs, names, email, and firstname of all students.
+
+
+
+SQL> CREATE OR REPLACE PROCEDURE student_details(c_cursor OUT SYS_REFCURSOR)
+  2  IS
+  3  BEGIN
+  4     OPEN c_cursor FOR
+  5        SELECT student_id,
+  6               student_name,
+  7               email,
+  8               first_name
+  9        FROM student;
+ 10  END student_details;
+ 11  /
+
+Procedure created.
+
+SQL> DECLARE
+  2     v_cursor SYS_REFCURSOR;
+  3     v_id NUMBER;
+  4     v_name VARCHAR2(50);
+  5     v_email VARCHAR2(50);
+  6     v_first VARCHAR2(50);
+  7  BEGIN
+  8     student_details(v_cursor);
+  9
+ 10     LOOP
+ 11        FETCH v_cursor INTO v_id, v_name, v_email, v_first;
+ 12        EXIT WHEN v_cursor%NOTFOUND;
+ 13
+ 14        DBMS_OUTPUT.PUT_LINE(
+ 15        'ID: ' || v_id ||
+ 16        ' NAME: ' || v_name ||
+ 17        ' EMAIL: ' || v_email ||
+ 18        ' FIRST NAME: ' || v_first);
+ 19
+ 20     END LOOP;
+ 21
+ 22     CLOSE v_cursor;
+ 23  END;
+ 24  /
+
+ID: 206 NAME: mohammed aslam EMAIL: mmmed@gmail.com FIRST NAME: Muhammed
+ID: 207 NAME: mohammed yousuf EMAIL: mmmed@gmail.com FIRST NAME: Mohammed
+ID: 208 NAME: kmano EMAIL: mmmed@gmail.com FIRST NAME: mano
+ID: 209 NAME: arvind kumar EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 210 NAME: hghghg EMAIL: mmmed@gmail.com FIRST NAME: hjgjhj
+ID: 210 NAME: mahesh kumar EMAIL: mmmed@gmail.com FIRST NAME: mahesh
+ID: 211 NAME: jaguar EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 212 NAME: arvind kumar EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 213 NAME: arvind kumar EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 211 NAME: jaguar EMAIL: mmmed@gmail.com FIRST NAME: lawrence
+ID: 217 NAME: santhosh EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 219 NAME: santhosh EMAIL: mmmed@gmail.com FIRST NAME: arvind
+ID: 220 NAME: arvind kumar EMAIL: mmmed@gmail.com FIRST NAME: arvind
+
+PL/SQL procedure successfully completed.
+
+
+B]write a PL/SQL function to display the city of all students. 
+
+
+
+SQL> CREATE OR REPLACE FUNCTION get_student_city
+  2  RETURN SYS_REFCURSOR
+  3  IS
+  4     c_cursor SYS_REFCURSOR;
+  5  BEGIN
+  6     OPEN c_cursor FOR
+  7        SELECT student_id, city
+  8        FROM student
+  9        WHERE city IS NOT NULL;
+ 10
+ 11     RETURN c_cursor;
+ 12  END get_student_city;
+ 13  /
+
+Function created.
+
+SQL> DECLARE
+  2     v_cursor SYS_REFCURSOR;
+  3     v_id NUMBER;
+  4     v_city VARCHAR2(30);
+  5  BEGIN
+  6     v_cursor := get_student_city;
+  7
+  8     DBMS_OUTPUT.PUT_LINE('STUDENT_ID    CITY');
+  9
+ 10     LOOP
+ 11        FETCH v_cursor INTO v_id, v_city;
+ 12        EXIT WHEN v_cursor%NOTFOUND;
+ 13
+ 14        DBMS_OUTPUT.PUT_LINE(v_id || '        ' || v_city);
+ 15     END LOOP;
+ 16
+ 17     CLOSE v_cursor;
+ 18  END;
+ 19  /
+
+STUDENT_ID    CITY
+206        chennai
+207        chennai
+208        chennai
+209        madurai
+210        madurai
+210        tenkasi
+211        tenkasi
+212        tenkasi
+213        tiruelvel
+211        tenkasi
+217        tiruelvel
+219        tiruelvel
+220        madurai
+
+PL/SQL procedure successfully completed.
+2]A. write a pl/sql function to find highest salary of each work
+
+SQL> CREATE OR REPLACE PROCEDURE highest_salary_staff
+  2  IS
+  3     CURSOR dept_cur IS
+  4        SELECT DISTINCT work_name FROM teaching_staff;
+
+  5     CURSOR staff_cur(p_work teaching_staff.work_name%TYPE) IS
+  6        SELECT staff_id, salary, work_name
+  7        FROM teaching_staff
+  8        WHERE work_name = p_work
+  9        AND salary = (SELECT MAX(salary)
+ 10                      FROM teaching_staff
+ 11                      WHERE work_name = p_work);
+
+ 12     v_staff_id NUMBER;
+ 13     v_salary   NUMBER;
+ 14     v_work     VARCHAR2(50);
+ 15  BEGIN
+ 16     FOR d IN dept_cur LOOP   -- OUTER LOOP
+ 17
+ 18        FOR s IN staff_cur(d.work_name) LOOP   -- INNER LOOP
+ 19
+ 20           DBMS_OUTPUT.PUT_LINE(
+ 21           'WORK: ' || d.work_name ||
+ 22           ' STAFF_ID: ' || s.staff_id ||
+ 23           ' SALARY: ' || s.salary);
+ 24
+ 25        END LOOP;
+ 26
+ 27     END LOOP;
+ 28  END highest_salary_staff;
+ 29  /
+
+Procedure created.
+
+SQL> EXEC highest_salary_staff;
+WORK: ped STAFF_ID: 201 SALARY: 160000
+WORK: coa STAFF_ID: 203 SALARY: 65000
+WORK: aptitude STAFF_ID: 205 SALARY: 52000
+WORK: softskill STAFF_ID: 207 SALARY: 51000
+
+PL/SQL procedure successfully completed.
+
+
+SQL> SELECT * FROM teaching_staff;
+STAFF_ID  SALARY   WORK_NAME   SUBJECT_ID
+--------  -------  ----------  ----------
+105       150000   ped         NULL
+107       60000    coa         403
+109       50000    aptitude    402
+110       50000    softskill   401
+201       160000   ped         451
+202       140000   ped         452
+203       65000    coa         453
+205       52000    aptitude    455
+207       51000    softskill   457
+
+12 rows selected.
+
+2]B.write a function to display average salary of each work
+
+SQL> CREATE OR REPLACE FUNCTION avg_salary_by_work
+  2  RETURN SYS_REFCURSOR
+  3  IS
+  4     c_cursor SYS_REFCURSOR;
+  5  BEGIN
+  6     OPEN c_cursor FOR
+  7        SELECT work_name, AVG(salary) AS avg_salary
+  8        FROM teaching_staff
+  9        GROUP BY work_name;
+ 10
+ 11     RETURN c_cursor;
+ 12  END avg_salary_by_work;
+ 13  /
+
+Function created.
+SQL> DECLARE
+  2     v_cursor SYS_REFCURSOR;
+  3     v_work   VARCHAR2(50);
+  4     v_avg    NUMBER;
+  5  BEGIN
+  6     v_cursor := avg_salary_by_work;
+  7
+  8     DBMS_OUTPUT.PUT_LINE('WORK_NAME    AVG_SALARY');
+  9
+ 10     LOOP
+ 11        FETCH v_cursor INTO v_work, v_avg;
+ 12        EXIT WHEN v_cursor%NOTFOUND;
+ 13
+ 14        DBMS_OUTPUT.PUT_LINE(v_work || '        ' || ROUND(v_avg,2));
+ 15     END LOOP;
+ 16
+ 17     CLOSE v_cursor;
+ 18  END;
+ 19  /
+WORK_NAME    AVG_SALARY
+ped        150000
+coa        62500
+aptitude   51000
+softskill  50500
+
+PL/SQL procedure successfully completed.
+
+3]A.find the work with maximum no of staff working
+
+SQL> CREATE OR REPLACE PROCEDURE max_staff_department(p_work OUT VARCHAR2)
+  2  IS
+  3  BEGIN
+  4     SELECT work_name
+  5     INTO p_work
+  6     FROM (
+  7        SELECT work_name, COUNT(*) cnt
+  8        FROM teaching_staff
+  9        GROUP BY work_name
+ 10        ORDER BY cnt DESC
+ 11     )
+ 12     WHERE ROWNUM = 1;
+ 13  END max_staff_department;
+ 14  /
+
+Procedure created.
+SQL> DECLARE
+  2     v_work VARCHAR2(50);
+  3  BEGIN
+  4     max_staff_department(v_work);
+  5     DBMS_OUTPUT.PUT_LINE('work with max staff: ' || v_work);
+  6  END;
+  7  /
+work with max staff: ped
+
+PL/SQL procedure successfully completed.
+
+
+3]B.write a function to display staff and their salary who are working with a salary lower than average salary of their work
+
+SQL> CREATE OR REPLACE FUNCTION staff_below_avg(p_work VARCHAR2)
+  2  RETURN SYS_REFCURSOR
+  3  IS
+  4     c_cursor SYS_REFCURSOR;
+  5  BEGIN
+  6     OPEN c_cursor FOR
+  7        SELECT *
+  8        FROM teaching_staff
+  9        WHERE salary < (
+ 10           SELECT AVG(salary)
+ 11           FROM teaching_staff
+ 12           WHERE work_name = p_work
+ 13        );
+ 14
+ 15     RETURN c_cursor;
+ 16  END staff_below_avg;
+ 17  /
+
+Function created.
+
+SQL> DECLARE
+  2     v_cursor SYS_REFCURSOR;
+  3     v_id NUMBER;
+  4     v_sal NUMBER;
+  5     v_work VARCHAR2(50);
+  6     v_sub NUMBER;
+  7  BEGIN
+  8     v_cursor := staff_below_avg('ped');
+  9
+ 10     LOOP
+ 11        FETCH v_cursor INTO v_id, v_sal, v_work, v_sub;
+ 12        EXIT WHEN v_cursor%NOTFOUND;
+ 13
+ 14        DBMS_OUTPUT.PUT_LINE(
+ 15        'ID:' || v_id || ' SAL:' || v_sal || ' WORK:' || v_work);
+ 16     END LOOP;
+ 17
+ 18     CLOSE v_cursor;
+ 19  END;
+ 20  /
+ID:202 SAL:140000 WORK:ped
+
+PL/SQL procedure successfully completed.
+
+
