@@ -1,0 +1,142 @@
+
+SQL> CREATE OR REPLACE TRIGGER trg_update_last_modified
+  2  BEFORE UPDATE ON employee
+  3  FOR EACH ROW
+  4  BEGIN
+  5      :NEW.last_modified := SYSDATE;
+  6  END;
+  7  /
+
+Trigger created.
+
+SQL> UPDATE employee
+  2  SET salary = 50000
+  3  WHERE emp_id = 101;
+
+1 row updated.
+
+SQL> CREATE OR REPLACE TRIGGER trg_restrict_update_time
+  2  BEFORE UPDATE OF salary ON employee
+  3  FOR EACH ROW
+  4  BEGIN
+  5      IF TO_NUMBER(TO_CHAR(SYSDATE,'HH24')) < 9
+  6      OR TO_NUMBER(TO_CHAR(SYSDATE,'HH24')) > 18 THEN
+  7          RAISE_APPLICATION_ERROR(-20001,
+  8          'Updates not allowed outside working hours');
+  9      END IF;
+ 10  END;
+ 11  /
+
+Trigger created.
+
+SQL> UPDATE employee
+  2  SET salary = 60000
+  3  WHERE emp_id = 101;
+ERROR at line 1:
+ORA-20001: Updates not allowed outside working hours
+ORA-06512: at "TRG_RESTRICT_UPDATE_TIME", line 4
+
+SQL> CREATE OR REPLACE TRIGGER trg_prevent_parent_delete
+  2  BEFORE DELETE ON department
+  3  FOR EACH ROW
+  4  DECLARE
+  5      v_count NUMBER;
+  6  BEGIN
+  7      SELECT COUNT(*)
+  8      INTO v_count
+  9      FROM employee
+ 10      WHERE dept_id = :OLD.dept_id;
+ 11
+ 12      IF v_count > 0 THEN
+ 13          RAISE_APPLICATION_ERROR(-20002,
+ 14          'Cannot delete department. Employees exist.');
+ 15      END IF;
+ 16  END;
+ 17  /
+Trigger created.
+
+
+SQL> DELETE FROM department
+  2  WHERE dept_id = 10;
+ERROR at line 1:
+ORA-20002: Cannot delete department. Employees exist.
+ORA-06512: at "TRG_PREVENT_PARENT_DELETE"
+
+
+SQL> CREATE OR REPLACE TRIGGER trg_check_duplicate_email
+  2  BEFORE INSERT OR UPDATE ON customer
+  3  FOR EACH ROW
+  4  DECLARE
+  5      v_count NUMBER;
+  6  BEGIN
+  7      SELECT COUNT(*)
+  8      INTO v_count
+  9      FROM customer
+ 10      WHERE email = :NEW.email;
+ 11
+ 12      IF v_count > 0 THEN
+ 13          RAISE_APPLICATION_ERROR(-20003,
+ 14          'Duplicate email not allowed');
+ 15      END IF;
+ 16  END;
+ 17  /
+
+Trigger created.
+
+SQL> INSERT INTO customer VALUES(101,'rahul','rahul@gmail.com');
+
+1 row created.
+
+SQL> INSERT INTO customer VALUES(102,'kumar','rahul@gmail.com');
+
+ERROR at line 1:
+ORA-20003: Duplicate email not allowed
+ORA-06512: at "TRG_CHECK_DUPLICATE_EMAIL"
+
+SQL> CREATE OR REPLACE TRIGGER trg_validate_salary
+  2  BEFORE INSERT ON teaching_staff
+  3  FOR EACH ROW
+  4  BEGIN
+  5      IF :NEW.salary < 10000 THEN
+  6          RAISE_APPLICATION_ERROR(-20005,
+  7          'Salary must be greater than 10000');
+  8      END IF;
+  9  END;
+ 10  /
+Trigger created.
+
+SQL> INSERT INTO teaching_staff VALUES(110,20000,2);
+
+1 row created.
+
+SQL> INSERT INTO teaching_staff VALUES(111,5000,2);
+ERROR at line 1:
+ORA-20005: Salary must be greater than 10000
+ORA-06512: at "TRG_VALIDATE_SALARY", line 3
+ORA-04088: error during execution of trigger 'TRG_VALIDATE_SALARY'
+
+
+SQL> CREATE OR REPLACE TRIGGER trg_check_student_age
+  2  BEFORE INSERT ON student
+  3  FOR EACH ROW
+  4  BEGIN
+  5      IF :NEW.age < 0 THEN
+  6          RAISE_APPLICATION_ERROR(-20006,
+  7          'Student age cannot be negative');
+  8      END IF;
+  9  END;
+ 10  /
+Trigger created.
+
+SQL> INSERT INTO student(student_id,student_name,age)
+  2  VALUES(300,'Rahul',21);
+
+1 row created.
+
+SQL> INSERT INTO student(student_id,student_name,age)
+  2  VALUES(301,'Kumar',-3);
+
+ERROR at line 1:
+ORA-20006: Student age cannot be negative
+ORA-06512: at "TRG_CHECK_STUDENT_AGE", line 3
+ORA-04088: error during execution of trigger 'TRG_CHECK_STUDENT_AGE'
