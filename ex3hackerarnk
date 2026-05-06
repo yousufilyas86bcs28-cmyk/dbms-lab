@@ -1,146 +1,262 @@
-1--contest leaderboard
-*/
+
+ 
+ 
+ ============================================================
+1. CONTEST LEADERBOARD
+ 
+CREATE TABLE temp_max_scores (
+    hacker_id    INT,
+    challenge_id INT,
+    max_score    INT
+);
+ 
+INSERT INTO temp_max_scores (hacker_id, challenge_id, max_score)
+SELECT hacker_id, challenge_id, MAX(score)
+FROM Submissions
+GROUP BY hacker_id, challenge_id;
+ 
 SELECT h.hacker_id,
        h.name,
-       SUM(ms.max_score) AS total_score
-FROM Hackers h
-JOIN (
-    SELECT hacker_id,
-           challenge_id,
-           MAX(score) AS max_score
-    FROM Submissions
-    GROUP BY hacker_id, challenge_id
-) ms
-ON h.hacker_id = ms.hacker_id
+       SUM(t.max_score) AS total_score
+FROM Hackers h, temp_max_scores t
+WHERE h.hacker_id = t.hacker_id
 GROUP BY h.hacker_id, h.name
-HAVING SUM(ms.max_score) > 0
+HAVING SUM(t.max_score) > 0
 ORDER BY total_score DESC, h.hacker_id ASC;
-exit;
-
-
-2-- the pads
+ 
+DELETE FROM temp_max_scores;
+ 
+ 
+-- ============================================================
+-- 2. THE PADS
 SELECT name || '(' || SUBSTR(occupation, 1, 1) || ')'
 FROM OCCUPATIONS
 ORDER BY name;
+ 
 SELECT 'There are a total of ' || COUNT(*) || ' ' || LOWER(occupation) || 's.'
 FROM OCCUPATIONS
 GROUP BY occupation
 ORDER BY COUNT(*), LOWER(occupation);
-
-3--the blunder
-SELECT CEIL(AVG(Salary) - AVG(REPLACE(Salary, '0', ''))) 
+ 
+ 
+-- ============================================================
+-- 3. THE BLUNDER
+ 
+SELECT CEIL(AVG(Salary) - AVG(REPLACE(Salary, '0', '')))
 FROM EMPLOYEES;
-
-4--top competitor
+ 
+ 
+-- ============================================================
+-- 4. TOP COMPETITOR
+ 
+CREATE TABLE temp_full_score (
+    hacker_id    INT,
+    hacker_name  VARCHAR(100),
+    challenge_id INT
+);
+ 
+INSERT INTO temp_full_score (hacker_id, hacker_name, challenge_id)
+SELECT s.hacker_id, h.name, s.challenge_id
+FROM Submissions s, Hackers h, Challenges c, Difficulty d
+WHERE s.hacker_id        = h.hacker_id
+  AND s.challenge_id     = c.challenge_id
+  AND c.difficulty_level = d.difficulty_level
+  AND s.score            = d.score;
+ 
+SELECT hacker_id, hacker_name
+FROM temp_full_score
+GROUP BY hacker_id, hacker_name
+HAVING COUNT(DISTINCT challenge_id) > 1
+ORDER BY COUNT(DISTINCT challenge_id) DESC, hacker_id ASC;
+ 
+DELETE FROM temp_full_score;
+ 
+ 
+-- ============================================================
+-- 5. INTERVIEWS
+ 
+CREATE TABLE temp_sub_stats (
+    challenge_id               INT,
+    total_submissions          INT,
+    total_accepted_submissions INT
+);
+ 
+INSERT INTO temp_sub_stats (challenge_id, total_submissions, total_accepted_submissions)
+SELECT challenge_id, SUM(total_submissions), SUM(total_accepted_submissions)
+FROM Submission_Stats
+GROUP BY challenge_id;
+ 
+CREATE TABLE temp_view_stats (
+    challenge_id       INT,
+    total_views        INT,
+    total_unique_views INT
+);
+ 
+INSERT INTO temp_view_stats (challenge_id, total_views, total_unique_views)
+SELECT challenge_id, SUM(total_views), SUM(total_unique_views)
+FROM View_Stats
+GROUP BY challenge_id;
+ 
+CREATE TABLE temp_contest_map (
+    contest_id   INT,
+    hacker_id    INT,
+    name         VARCHAR(100),
+    challenge_id INT
+);
+ 
+INSERT INTO temp_contest_map (contest_id, hacker_id, name, challenge_id)
+SELECT c.contest_id, c.hacker_id, c.name, ch.challenge_id
+FROM Contests c, Colleges col, Challenges ch
+WHERE c.contest_id   = col.contest_id
+  AND col.college_id = ch.college_id;
+ 
 SELECT
-FROM Hackers h
-JOIN Submissions s 
-    ON h.hacker_id = s.hacker_id
-JOIN Challenges c 
-    ON s.challenge_id = c.challenge_id
-JOIN Difficulty d 
-    ON c.difficulty_level = d.difficulty_level
-WHERE s.score = d.score
-GROUP BY h.hacker_id, h.name
-HAVING COUNT(DISTINCT s.challenge_id) > 1
-ORDER BY COUNT(DISTINCT s.challenge_id) DESC, h.hacker_id ASC;
-
-5--interviews
-
-SELECT 
-    c.contest_id,
-    c.hacker_id,
-    c.name,
-    SUM(ss.total_submissions) AS total_submissions,
+    m.contest_id,
+    m.hacker_id,
+    m.name,
+    SUM(ss.total_submissions)          AS total_submissions,
     SUM(ss.total_accepted_submissions) AS total_accepted_submissions,
-    SUM(vs.total_views) AS total_views,
-    SUM(vs.total_unique_views) AS total_unique_views
-FROM Contests c
-JOIN Colleges col 
-    ON c.contest_id = col.contest_id
-JOIN Challenges ch 
-    ON col.college_id = ch.college_id
-LEFT JOIN Submission_Stats ss 
-    ON ch.challenge_id = ss.challenge_id
-LEFT JOIN View_Stats vs 
-    ON ch.challenge_id = vs.challenge_id
-GROUP BY c.contest_id, c.hacker_id, c.name
-HAVING 
-    SUM(ss.total_submissions) > 0 OR
+    SUM(vs.total_views)                AS total_views,
+    SUM(vs.total_unique_views)         AS total_unique_views
+FROM temp_contest_map m, temp_sub_stats ss, temp_view_stats vs
+WHERE m.challenge_id = ss.challenge_id
+  AND m.challenge_id = vs.challenge_id
+GROUP BY m.contest_id, m.hacker_id, m.name
+HAVING
+    SUM(ss.total_submissions)          > 0 OR
     SUM(ss.total_accepted_submissions) > 0 OR
-    SUM(vs.total_views) > 0 OR
-    SUM(vs.total_unique_views) > 0
-ORDER BY c.contest_id;
+    SUM(vs.total_views)                > 0 OR
+    SUM(vs.total_unique_views)         > 0
+ORDER BY m.contest_id;
+ 
+DELETE FROM temp_sub_stats;
+DELETE FROM temp_view_stats;
+DELETE FROM temp_contest_map;
+ 
+ 
+-- ============================================================
+-- 6. 15 DAYS OF LEARNING SQL
+ 
+CREATE TABLE temp_dates (
+    submission_date DATE,
+    day_number      INT
+);
+ 
+INSERT INTO temp_dates (submission_date, day_number)
+SELECT DISTINCT submission_date,
+       DATEDIFF(DAY, '2016-03-01', submission_date)
+FROM Submissions;
+ 
+CREATE TABLE temp_streak_counts (
+    submission_date DATE,
+    streak_hackers  INT
+);
+ 
+INSERT INTO temp_streak_counts (submission_date, streak_hackers)
+SELECT d.submission_date, COUNT(DISTINCT s.hacker_id)
+FROM temp_dates d, Submissions s
+WHERE s.submission_date <= d.submission_date
+GROUP BY d.submission_date, d.day_number
+HAVING COUNT(DISTINCT s.submission_date) = d.day_number + 1;
+ 
+CREATE TABLE temp_top_hacker (
+    submission_date DATE,
+    hacker_id       INT,
+    hacker_name     VARCHAR(100),
+    sub_count       INT
+);
+ 
+INSERT INTO temp_top_hacker (submission_date, hacker_id, hacker_name, sub_count)
+SELECT s.submission_date, s.hacker_id, h.name, COUNT(s.submission_id)
+FROM Submissions s, Hackers h
+WHERE s.hacker_id = h.hacker_id
+GROUP BY s.submission_date, s.hacker_id, h.name;
+ 
 
+DELETE FROM temp_top_hacker
+WHERE sub_count < (
+    SELECT MAX(t2.sub_count)
+    FROM temp_top_hacker t2
+    WHERE t2.submission_date = temp_top_hacker.submission_date
+);
+ 
+SELECT
+    sc.submission_date,
+    sc.streak_hackers,
+    th.hacker_id,
+    th.hacker_name
+FROM temp_streak_counts sc, temp_top_hacker th
+WHERE sc.submission_date = th.submission_date
+ORDER BY sc.submission_date;
+ 
+DELETE FROM temp_dates;
+DELETE FROM temp_streak_counts;
+DELETE FROM temp_top_hacker;
+ 
+ 
+-- ============================================================
+-- 7. NEW COMPANIES
 
-6--15 days of learning sql
-SELECT 
-    s1.submission_date,
-    (
-        /* Part 1: Count of hackers with a perfect streak */
-        SELECT COUNT(DISTINCT s2.hacker_id)
-        FROM Submissions s2
-        WHERE s2.submission_date = s1.submission_date
-          AND (
-              SELECT COUNT(DISTINCT s3.submission_date)
-              FROM Submissions s3
-              WHERE s3.hacker_id = s2.hacker_id
-                AND s3.submission_date < s1.submission_date
-          ) = DATEDIFF(DAY, '2016-03-01', s1.submission_date)
-    ),
-    (
-        /* Part 2: ID of hacker with max submissions for the day */
-        SELECT TOP 1 s4.hacker_id
-        FROM Submissions s4
-        WHERE s4.submission_date = s1.submission_date
-        GROUP BY s4.hacker_id
-        ORDER BY COUNT(s4.submission_id) DESC, s4.hacker_id ASC
-    ),
-    (
-        /* Part 3: Name of that top hacker */
-        SELECT name 
-        FROM Hackers 
-        WHERE hacker_id = (
-            SELECT TOP 1 s5.hacker_id
-            FROM Submissions s5
-            WHERE s5.submission_date = s1.submission_date
-            GROUP BY s5.hacker_id
-            ORDER BY COUNT(s5.submission_id) DESC, s5.hacker_id ASC
-        )
-    )
-FROM (SELECT DISTINCT submission_date FROM Submissions) s1
-ORDER BY s1.submission_date;
-
-
-7--new companies
-SELECT 
-    c.company_code, 
-    c.founder, 
-    COUNT(DISTINCT lm.lead_manager_code), 
-    COUNT(DISTINCT sm.senior_manager_code), 
-    COUNT(DISTINCT m.manager_code), 
-    COUNT(DISTINCT e.employee_code)
-FROM Company c
-JOIN Lead_Manager lm ON c.company_code = lm.company_code
-JOIN Senior_Manager sm ON lm.lead_manager_code = sm.lead_manager_code
-JOIN Manager m ON sm.senior_manager_code = m.senior_manager_code
-JOIN Employee e ON m.manager_code = e.manager_code
-GROUP BY c.company_code, c.founder
-ORDER BY c.company_code ASC;
-exit;
-
-8--the report
-
-SELECT 
-    CASE 
-        WHEN g.grade >= 8 THEN s.name 
-        ELSE 'NULL' 
-    END AS name, 
-    g.grade, 
-    s.marks
-FROM Students s
-JOIN Grades g ON s.marks BETWEEN g.min_mark AND g.max_mark
-ORDER BY 
-    g.grade DESC, 
-    (CASE WHEN g.grade >= 8 THEN s.name ELSE NULL END) ASC,
-    (CASE WHEN g.grade < 8 THEN s.marks ELSE NULL END) ASC;
+ 
+CREATE TABLE temp_hierarchy (
+    company_code        VARCHAR(50),
+    founder             VARCHAR(100),
+    lead_manager_code   VARCHAR(50),
+    senior_manager_code VARCHAR(50),
+    manager_code        VARCHAR(50),
+    employee_code       VARCHAR(50)
+);
+ 
+INSERT INTO temp_hierarchy
+    (company_code, founder, lead_manager_code, senior_manager_code, manager_code, employee_code)
+SELECT c.company_code, c.founder,
+       lm.lead_manager_code, sm.senior_manager_code,
+       m.manager_code, e.employee_code
+FROM Company c, Lead_Manager lm, Senior_Manager sm, Manager m, Employee e
+WHERE c.company_code         = lm.company_code
+  AND lm.lead_manager_code   = sm.lead_manager_code
+  AND sm.senior_manager_code = m.senior_manager_code
+  AND m.manager_code         = e.manager_code;
+ 
+SELECT
+    company_code,
+    founder,
+    COUNT(DISTINCT lead_manager_code),
+    COUNT(DISTINCT senior_manager_code),
+    COUNT(DISTINCT manager_code),
+    COUNT(DISTINCT employee_code)
+FROM temp_hierarchy
+GROUP BY company_code, founder
+ORDER BY company_code ASC;
+ 
+DELETE FROM temp_hierarchy;
+ 
+ 
+-- ============================================================
+-- 8. THE REPORT 
+CREATE TABLE temp_report (
+    student_name VARCHAR(100),
+    grade        INT,
+    marks        INT
+);
+ 
+INSERT INTO temp_report (student_name, grade, marks)
+SELECT s.name, g.grade, s.marks
+FROM Students s, Grades g
+WHERE s.marks BETWEEN g.min_mark AND g.max_mark;
+ 
+SELECT
+    CASE
+        WHEN grade >= 8 THEN student_name
+        ELSE 'NULL'
+    END AS name,
+    grade,
+    marks
+FROM temp_report
+ORDER BY
+    grade DESC,
+    (CASE WHEN grade >= 8 THEN student_name ELSE NULL END) ASC,
+    (CASE WHEN grade < 8  THEN marks ELSE NULL END) ASC;
+ 
+DELETE FROM temp_report;
+ 
