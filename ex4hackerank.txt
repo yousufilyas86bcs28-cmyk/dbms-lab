@@ -1,115 +1,124 @@
 
-
-
-1--department top salary leetcode
-
-SELECT 
-    d.name AS Department,
+-- ============================================================
+-- EX4 HACKERRANK - NESTED QUERIES (SUBQUERIES) ONLY
+ 
+-- 1. DEPARTMENT TOP 3 SALARIES (Nested Subquery)
+SELECT
+    (SELECT name FROM Department WHERE id = e.departmentId) AS Department,
     e.name AS Employee,
     e.salary AS Salary
 FROM (
     SELECT *,
-           DENSE_RANK() OVER (
-               PARTITION BY departmentId 
-               ORDER BY salary DESC
+           (
+               SELECT COUNT(DISTINCT e2.salary)
+               FROM Employee e2
+               WHERE e2.departmentId = e1.departmentId
+                 AND e2.salary >= e1.salary
            ) AS rnk
-    FROM Employee
+    FROM Employee e1
 ) e
-JOIN Department d
-ON e.departmentId = d.id
-WHERE e.rnk <= 3;
-
-2--department with highest salary
-SELECT 
-    d.name AS Department,
+WHERE e.rnk <= 3
+ORDER BY e.departmentId, e.salary DESC;
+ 
+ 
+-- 2. DEPARTMENT WITH HIGHEST SALARY (Nested Subquery)
+SELECT
+    (SELECT name FROM Department WHERE id = e.departmentId) AS Department,
     e.name AS Employee,
     e.salary AS Salary
 FROM Employee e
-JOIN Department d
-    ON e.departmentId = d.id
 WHERE e.salary = (
     SELECT MAX(salary)
     FROM Employee
     WHERE departmentId = e.departmentId
 );
-
-3--Japanese city
-
-select * from city where countrycode='jpn';
-4-- weather observation station 20
+ 
+ 
+-- 3. JAPANESE CITY (DQL - SELECT)
+SELECT *
+FROM CITY
+WHERE COUNTRYCODE = 'JPN';
+ 
+ 
+-- 4. WEATHER OBSERVATION STATION 20 (Nested Subquery)
 SELECT ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY LAT_N), 4)
-FROM STATION;
-5-- binary tree nodes
-
+FROM STATION
+WHERE LAT_N IS NOT NULL;
+ 
+ 
+-- 5. BINARY TREE NODES (Nested Subquery)
 SELECT N,
-    CASE 
+    CASE
         WHEN P IS NULL THEN 'Root'
         WHEN N IN (SELECT P FROM BST WHERE P IS NOT NULL) THEN 'Inner'
         ELSE 'Leaf'
     END
 FROM BST
 ORDER BY N;
-
-6--types of triangle
-
-SELECT 
+ 
+ 
+-- 6. TYPES OF TRIANGLE (DQL - SELECT / CASE)
+SELECT
     CASE
-        -- Not a triangle condition
         WHEN A + B <= C OR A + C <= B OR B + C <= A THEN 'Not A Triangle'
-        
-        -- All sides equal
-        WHEN A = B AND B = C THEN 'Equilateral'
-        
-        -- Any two sides equal
-        WHEN A = B OR B = C OR A = C THEN 'Isosceles'
-        
-        -- All sides different
+        WHEN A = B AND B = C                         THEN 'Equilateral'
+        WHEN A = B OR B = C OR A = C                 THEN 'Isosceles'
         ELSE 'Scalene'
     END AS triangle_type
 FROM TRIANGLES;
-
-7--occupations
-
+ 
+ 
+-- 7. OCCUPATIONS (Nested Subquery with ROW_NUMBER)
 SELECT
-    MAX(CASE WHEN Occupation = 'Doctor' THEN Name END) AS Doctor,
+    MAX(CASE WHEN Occupation = 'Doctor'    THEN Name END) AS Doctor,
     MAX(CASE WHEN Occupation = 'Professor' THEN Name END) AS Professor,
-    MAX(CASE WHEN Occupation = 'Singer' THEN Name END) AS Singer,
-    MAX(CASE WHEN Occupation = 'Actor' THEN Name END) AS Actor
+    MAX(CASE WHEN Occupation = 'Singer'    THEN Name END) AS Singer,
+    MAX(CASE WHEN Occupation = 'Actor'     THEN Name END) AS Actor
 FROM (
-    SELECT 
+    SELECT
         Name,
         Occupation,
         ROW_NUMBER() OVER (PARTITION BY Occupation ORDER BY Name) AS rn
     FROM OCCUPATIONS
-)
+) ranked
 GROUP BY rn
 ORDER BY rn;
-
-8--olivenders inventory
-
-SELECT 
-    w.id,
-    wp.age,
-    w.coins_needed,
-    w.power
+ 
+ 
+-- 8. OLIVANDER'S INVENTORY (Nested Subquery)
+SELECT
+    id,
+    (SELECT age  FROM Wands_Property WHERE code = w.code) AS age,
+    coins_needed,
+    power
 FROM Wands w
-JOIN Wands_Property wp 
-    ON w.code = wp.code
-WHERE wp.is_evil = 0
-AND w.coins_needed = (
-    SELECT MIN(w2.coins_needed)
-    FROM Wands w2
-    JOIN Wands_Property wp2 
-        ON w2.code = wp2.code
-    WHERE wp2.is_evil = 0
-      AND w2.power = w.power
-      AND wp2.age = wp.age
-)
-ORDER BY w.power DESC, wp.age DESC;
+WHERE (SELECT is_evil FROM Wands_Property WHERE code = w.code) = 0
+  AND w.coins_needed = (
+      SELECT MIN(w2.coins_needed)
+      FROM Wands w2
+      WHERE w2.power = w.power
+        AND (SELECT is_evil FROM Wands_Property WHERE code = w2.code) = 0
+        AND (SELECT age   FROM Wands_Property WHERE code = w2.code)
+          = (SELECT age   FROM Wands_Property WHERE code = w.code)
+  )
+ORDER BY w.power DESC,
+         (SELECT age FROM Wands_Property WHERE code = w.code) DESC;
+ 9--new company
 
-9--population census
-SELECT SUM(ci.POPULATION)
-FROM CITY ci
-JOIN COUNTRY co
-    ON ci.COUNTRYCODE = co.CODE
-WHERE co.CONTINENT = 'Asia';
+ SELECT c.company_code,
+       c.founder,
+       (SELECT COUNT(DISTINCT lead_manager_code)
+        FROM Lead_Manager lm
+        WHERE lm.company_code = c.company_code),
+       (SELECT COUNT(DISTINCT senior_manager_code)
+        FROM Senior_Manager sm
+        WHERE sm.company_code = c.company_code),
+       (SELECT COUNT(DISTINCT manager_code)
+        FROM Manager m
+        WHERE m.company_code = c.company_code),
+       (SELECT COUNT(DISTINCT employee_code)
+        FROM Employee e
+        WHERE e.company_code = c.company_code)
+FROM Company c
+ORDER BY c.company_code;
+ 
