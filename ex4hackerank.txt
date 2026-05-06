@@ -1,6 +1,6 @@
 
 -- ============================================================
--- EX4 HACKERRANK - NESTED QUERIES (SUBQUERIES) ONLY
+-- EX4 HACKERRANK - NESTED QUERIES (SUBQUERIES) 
  
 -- 1. DEPARTMENT TOP 3 SALARIES (Nested Subquery)
 SELECT
