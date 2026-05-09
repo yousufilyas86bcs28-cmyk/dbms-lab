@@ -1,0 +1,286 @@
+1.)INSERT ONE
+
+fitnessDB> db.users.insertOne({
+|   name: "yousuf",
+|   email: "yousuf@gmail.com",
+|   username: "yousuf",
+|   password: "yousuf@123",
+|   teaching_subject: "DBMS STAFFF",
+|   created_at: new Date()
+| })
+{
+  acknowledged: true,
+  insertedId: ObjectId('69f16eb9337f1e25e23682d1')
+}
+
+2.)TO FIND PARTICULAR USER
+
+fitnessDB> db.users.find({username:"yousuf"})
+[
+  {
+    _id: ObjectId('69f16eb9337f1e25e23682d1'),
+    name: 'yousuf',
+    email: 'yousuf@gmail.com',
+    username: 'yousuf',
+    password: 'yousuf@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: ISODate('2026-04-29T02:36:41.182Z')
+  }
+]
+
+db.users.insertOne({
+  name: "prasanna",
+  email: "prasanna@gmail.com",
+  username: "prasanna",
+  password: "Prasanna@123",
+  teaching_subject: "User",
+  created_at: new Date("2026-03-31T00:11:23.785Z")
+})
+
+3.)INSERT MANY
+
+db.users.insertMany([
+  {
+    name: "Raja Yoken",
+    email: "raja@gmail.com",
+    username: "raja",
+    password: "Raja@123",
+    teaching_subject: "DBMS STAFFF",
+    created_at: new Date("2026-03-31T00:31:34.254Z")
+  },
+  {
+    name: "arnold",
+    email: "arnold@gmail.com",
+    username: "arnold",
+    password: "Arnold@123",
+    teaching_subject: "DBMS STAFFF",
+    created_at: new Date("2026-04-19T23:03:39.469Z")
+  },
+  {
+    name: "mano",
+    email: "mano@gmail.com",
+    username: "mano",
+    password: "Bspp1234@",
+    teaching_subject: "User",
+    created_at: new Date("2026-04-20T23:36:27.059Z")
+  },
+  {
+    name: "jones",
+    email: "jones@gmil.com",
+    username: "jones",
+    password: "Jones@123",
+    teaching_subject: "DBMS STAFFF",
+    created_at: new Date("2026-04-21T15:31:28.190Z")
+  },
+  {
+    name: "manoj",
+    email: "manoj@gmail.com",
+    username: "manoj",
+    password: "Manoj@123",
+    teaching_subject: "User",
+    created_at: new Date("2026-04-21T15:43:55.117Z")
+  },
+  {
+    name: "virat",
+    email: "virat@gmail.com",
+    username: "virat",
+    password: "Virat@123",
+    teaching_subject: "DBMS STAFFF",
+    age: 0,
+    created_at: new Date("2026-04-28T16:33:16.421Z")
+  }
+])
+
+4.)UPDATE ONE
+
+fitnessDB> db.users.updateOne(
+|   { username: "yousuf" },
+|   { $set: { teaching_subject: "User" } }
+| )
+|
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+5.)UPDATE MANY
+
+fitnessDB> db.users.updateMany(
+|   { teaching_subject: "DBMS STAFFF" },
+|   { $set: { teaching_subject: "DBMS STAFFF" } }
+| )
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 4,
+  modifiedCount: 4,
+  upsertedCount: 0
+}
+
+6.)ADD NEW FEILD STATUS TO USERS
+
+fitnessDB> db.users.updateMany(
+|   {},
+|   { $set: { status: "Active" } }
+| )
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 7,
+  modifiedCount: 7,
+  upsertedCount: 0
+}
+
+7.)DELETE ONE
+
+fitnessDB> db.users.deleteOne({ username: "yousuf" })
+{ acknowledged: true, deletedCount: 1 }
+fitnessDB>
+
+8.)DELETE MANY(TO DELETE ALL GOALS OF PRASANNA)
+
+fitnessDB> db.fitness_goals.deleteMany({username:"prasanna"})
+{ acknowledged: true, deletedCount: 2 }
+
+9.)TO DROP COLLECTION FITNESS_GOALS
+
+fitnessDB> db.fitness_goals.drop()
+true
+
+10.)COUNT NUMBER OF USERS
+
+fitnessDB> db.users.countDocuments()
+7
+
+11.)TO FIND AVERAGE,MINIMUM,MAXIMUM,TATAL AGE OF USERS
+
+fitnessDB> db.health_profiles.aggregate([
+|   {
+|     $group: {
+|       _id: null,
+|       avgAge: { $avg: "$age" },
+|       maxAge: { $max: "$age" },
+|       minAge: { $min: "$age" },
+|       totalAge: { $sum: "$age" }
+|     }
+|   }
+| ])
+|
+[
+  {
+    _id: null,
+    avgAge: 25.666666666666668,
+    maxAge: 38,
+    minAge: 19,
+    totalAge: 77
+  }
+]
+12.)TO COUNT THE NUMBER OF USERS AND DBMS STAFFF(GROUP)
+
+fitnessDB> db.users.aggregate([
+|   {
+|     $group: {
+|       _id: "$teaching_subject",
+|       count: { $sum: 1 }
+|     }
+|   }
+| ])
+|
+[ { _id: 'User', count: 3 }, { _id: 'DBMS STAFFF', count: 4 } ]
+
+13.)ORDER DBMS STAFFF BASED ON USERNAME(DESC)
+
+fitnessDB> db.users.find({teaching_subject:"DBMS STAFFF"}).sort({ username: -1 })
+[
+  {
+    _id: ObjectId('69f093f440456223db4c7245'),
+    name: 'virat',
+    email: 'virat@gmail.com',
+    username: 'virat',
+    password: 'Virat@123',
+    teaching_subject: 'DBMS STAFFF',
+    age: 0,
+    created_at: '2026-04-28T16:33:16.421135',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69cac88e5639987e6ebb75db'),
+    name: 'Raja Yoken',
+    email: 'raja@gmail.com',
+    username: 'raja',
+    password: 'Raja@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-03-31T00:31:34.2549075',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69e74af8a5b6322f164ec621'),
+    name: 'jones',
+    email: 'jones@gmil.com',
+    username: 'jones',
+    password: 'Jones@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-04-21T15:31:28.1902925',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69e511f3868c2e1ee61df37b'),
+    name: 'arnold',
+    email: 'arnold@gmail.com',
+    username: 'arnold',
+    password: 'Arnold@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-04-19T23:03:39.4696793',
+    status: 'Active'
+  }
+]
+
+14.)SORTING DBMS STAFFF BASED ON USERNAME(ASCEN)
+
+fitnessDB> db.users.find({teaching_subject:"DBMS STAFFF"}).sort({ username: 1 })
+[
+  {
+    _id: ObjectId('69e511f3868c2e1ee61df37b'),
+    name: 'arnold',
+    email: 'arnold@gmail.com',
+    username: 'arnold',
+    password: 'Arnold@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-04-19T23:03:39.4696793',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69e74af8a5b6322f164ec621'),
+    name: 'jones',
+    email: 'jones@gmil.com',
+    username: 'jones',
+    password: 'Jones@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-04-21T15:31:28.1902925',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69cac88e5639987e6ebb75db'),
+    name: 'Raja Yoken',
+    email: 'raja@gmail.com',
+    username: 'raja',
+    password: 'Raja@123',
+    teaching_subject: 'DBMS STAFFF',
+    created_at: '2026-03-31T00:31:34.2549075',
+    status: 'Active'
+  },
+  {
+    _id: ObjectId('69f093f440456223db4c7245'),
+    name: 'virat',
+    email: 'virat@gmail.com',
+    username: 'virat',
+    password: 'Virat@123',
+    teaching_subject: 'DBMS STAFFF',
+  
+    created_at: '2026-04-28T16:33:16.421135',
+    status: 'Active'
+  }
+]
+
